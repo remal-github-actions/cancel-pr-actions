@@ -33458,9 +33458,11 @@ const githubToken = core.getInput('githubToken', { required: true });
 const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
 function dump(name, object) {
-    core.info(name + ': ' + JSON.stringify(object, (key, value) => ['repository', 'repo', 'user', 'body'].includes(key)
+    core.startGroup(name);
+    core.info(JSON.stringify(object, (key, value) => ['_links', 'repository', 'repo', 'user', 'body', 'labels'].includes(key)
         ? null
         : value, 2));
+    core.endGroup();
 }
 async function run() {
     try {

@@ -14,14 +14,16 @@ const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 't
 const octokit = newOctokitInstance(githubToken)
 
 function dump(name: string, object: any) {
-    core.info(name + ': ' + JSON.stringify(
+    core.startGroup(name)
+    core.info(JSON.stringify(
         object,
         (key, value) =>
-            ['repository', 'repo', 'user', 'body'].includes(key)
+            ['_links', 'repository', 'repo', 'user', 'body', 'labels'].includes(key)
                 ? null
                 : value,
         2,
     ))
+    core.endGroup()
 }
 
 async function run(): Promise<void> {
