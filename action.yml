@@ -1,5 +1,5 @@
-name: Template action
-description: Template action description
+name: Cancel PR actions
+description: Cancel GitHub action of the current Pull Request
 
 inputs:
   githubToken:
