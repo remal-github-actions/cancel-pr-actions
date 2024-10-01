@@ -83,7 +83,7 @@ async function run(): Promise<void> {
                 })
             }
 
-            dump(`workflowRuns`, workflowRuns)
+            dump(`  workflowRuns`, workflowRuns)
         }
 
     } catch (error) {
