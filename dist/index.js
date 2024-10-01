@@ -33455,8 +33455,11 @@ function newOctokitInstance(token) {
 
 
 const githubToken = core.getInput('githubToken', { required: true });
-const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true';
+const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
+function dump(name, object) {
+    core.info(name + ': ' + JSON.stringify(object, (key, value) => key === 'repository' ? undefined : value, 2));
+}
 async function run() {
     try {
         const pullRequest = github.context.payload.pull_request;
@@ -33464,7 +33467,6 @@ async function run() {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${github.context.eventName}'.`);
             return;
         }
-        const workflowIdsToCancel = new Set();
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
@@ -33494,7 +33496,7 @@ async function run() {
                     }
                 });
             }
-            core.info(JSON.stringify(workflowRuns, (key, value) => key === 'repository' ? undefined : value, 2));
+            dump('workflowRuns', workflowRuns);
         }
     }
     catch (error) {

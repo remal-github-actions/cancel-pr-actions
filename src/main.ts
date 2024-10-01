@@ -9,9 +9,17 @@ export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 const githubToken = core.getInput('githubToken', { required: true })
-const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true'
+const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true'
 
 const octokit = newOctokitInstance(githubToken)
+
+function dump(name: string, object: any) {
+    core.info(name + ': ' + JSON.stringify(
+        object,
+        (key, value) => key === 'repository' ? undefined : value,
+        2,
+    ))
+}
 
 async function run(): Promise<void> {
     try {
@@ -20,8 +28,6 @@ async function run(): Promise<void> {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${context.eventName}'.`)
             return
         }
-
-        const workflowIdsToCancel = new Set<string>()
 
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: context.repo.owner,
@@ -56,11 +62,7 @@ async function run(): Promise<void> {
                 })
             }
 
-            core.info(JSON.stringify(
-                workflowRuns,
-                (key, value) => key === 'repository' ? undefined : value,
-                2,
-            ))
+            dump('workflowRuns', workflowRuns)
         }
 
     } catch (error) {
