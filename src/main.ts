@@ -18,7 +18,18 @@ function dump(name: string, object: any) {
     core.info(JSON.stringify(
         object,
         (key, value) =>
-            ['_links', 'repository', 'repo', 'user', 'body', 'labels'].includes(key)
+            [
+                '_links',
+                'repository',
+                'repo',
+                'user',
+                'owner',
+                'body',
+                'labels',
+                'assignee',
+                'assignees',
+                'requested_reviewers',
+            ].includes(key)
                 ? null
                 : value,
         2,
@@ -29,7 +40,7 @@ function dump(name: string, object: any) {
 async function run(): Promise<void> {
     try {
         const pullRequest = context.payload.pull_request
-        dump('pullRequest', pullRequest)
+        dump(`pullRequest: ${pullRequest?.number}`, pullRequest)
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${context.eventName}'.`)
             return
@@ -41,8 +52,8 @@ async function run(): Promise<void> {
             ref: context.payload.pull_request?.head?.sha,
         })
         for (const checkSuite of checkSuites) {
-            dump('checkSuite', checkSuite)
-            if (checkSuite.app?.name !== 'github-actions'
+            dump(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
+            if (checkSuite.app?.slug !== 'github-actions'
                 || checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== context.payload.pull_request?.number
             ) {
@@ -69,7 +80,7 @@ async function run(): Promise<void> {
                 })
             }
 
-            dump('workflowRuns', workflowRuns)
+            dump(`workflowRuns`, workflowRuns)
         }
 
     } catch (error) {

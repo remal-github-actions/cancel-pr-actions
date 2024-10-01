@@ -33459,7 +33459,18 @@ const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 't
 const octokit = newOctokitInstance(githubToken);
 function dump(name, object) {
     core.startGroup(name);
-    core.info(JSON.stringify(object, (key, value) => ['_links', 'repository', 'repo', 'user', 'body', 'labels'].includes(key)
+    core.info(JSON.stringify(object, (key, value) => [
+        '_links',
+        'repository',
+        'repo',
+        'user',
+        'owner',
+        'body',
+        'labels',
+        'assignee',
+        'assignees',
+        'requested_reviewers',
+    ].includes(key)
         ? null
         : value, 2));
     core.endGroup();
@@ -33467,7 +33478,7 @@ function dump(name, object) {
 async function run() {
     try {
         const pullRequest = github.context.payload.pull_request;
-        dump('pullRequest', pullRequest);
+        dump(`pullRequest: ${pullRequest?.number}`, pullRequest);
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${github.context.eventName}'.`);
             return;
@@ -33478,8 +33489,8 @@ async function run() {
             ref: github.context.payload.pull_request?.head?.sha,
         });
         for (const checkSuite of checkSuites) {
-            dump('checkSuite', checkSuite);
-            if (checkSuite.app?.name !== 'github-actions'
+            dump(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
+            if (checkSuite.app?.slug !== 'github-actions'
                 || checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
                 continue;
@@ -33502,7 +33513,7 @@ async function run() {
                     }
                 });
             }
-            dump('workflowRuns', workflowRuns);
+            dump(`workflowRuns`, workflowRuns);
         }
     }
     catch (error) {
