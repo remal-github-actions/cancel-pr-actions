@@ -33463,6 +33463,7 @@ function dump(name, object) {
 async function run() {
     try {
         const pullRequest = github.context.payload.pull_request;
+        dump('pullRequest', pullRequest);
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${github.context.eventName}'.`);
             return;
@@ -33473,6 +33474,7 @@ async function run() {
             ref: github.context.payload.pull_request?.head?.sha,
         });
         for (const checkSuite of checkSuites) {
+            dump('checkSuite', checkSuite);
             if (checkSuite.app?.name !== 'github-actions'
                 || checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
