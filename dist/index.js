@@ -33477,6 +33477,7 @@ function dump(name, object) {
 }
 async function run() {
     try {
+        dump(`context`, github.context);
         const pullRequest = github.context.payload.pull_request;
         dump(`pullRequest: ${pullRequest?.number}`, pullRequest);
         if (pullRequest == null) {
@@ -33508,7 +33509,8 @@ async function run() {
                     status: workflowRunStatusToFind,
                 });
                 currentRuns.forEach(currentRun => {
-                    if (!workflowRuns.some(it => it.id === currentRun.id)) {
+                    if (!workflowRuns.some(it => it.id === currentRun.id)
+                        && currentRun.id !== github.context.runId) {
                         workflowRuns.push(currentRun);
                     }
                 });

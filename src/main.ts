@@ -39,6 +39,7 @@ function dump(name: string, object: any) {
 
 async function run(): Promise<void> {
     try {
+        dump(`context`, context)
         const pullRequest = context.payload.pull_request
         dump(`pullRequest: ${pullRequest?.number}`, pullRequest)
         if (pullRequest == null) {
@@ -74,7 +75,9 @@ async function run(): Promise<void> {
                     status: workflowRunStatusToFind,
                 })
                 currentRuns.forEach(currentRun => {
-                    if (!workflowRuns.some(it => it.id === currentRun.id)) {
+                    if (!workflowRuns.some(it => it.id === currentRun.id)
+                        && currentRun.id !== context.runId
+                    ) {
                         workflowRuns.push(currentRun)
                     }
                 })
