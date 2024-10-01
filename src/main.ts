@@ -16,7 +16,10 @@ const octokit = newOctokitInstance(githubToken)
 function dump(name: string, object: any) {
     core.info(name + ': ' + JSON.stringify(
         object,
-        (key, value) => key === 'repository' ? undefined : value,
+        (key, value) =>
+            ['repository', 'repo', 'user', 'body'].includes(key)
+                ? null
+                : value,
         2,
     ))
 }
