@@ -9,7 +9,7 @@ export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 const githubToken = core.getInput('githubToken', { required: true })
-const _dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true'
+const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true'
 
 const octokit = newOctokitInstance(githubToken)
 
@@ -24,6 +24,9 @@ function dump(name: string, object: any) {
                 'repo',
                 'user',
                 'owner',
+                'organization',
+                'sender',
+                'actor',
                 'body',
                 'labels',
                 'assignee',
@@ -61,29 +64,47 @@ async function run(): Promise<void> {
                 continue
             }
 
-            const workflowRuns: WorkflowRun[] = []
             const workflowRunStatusesToFind: WorkflowRunStatus[] = [
                 'queued',
                 'in_progress',
             ]
+            const processedWorkflowRunIds = new Set<number>()
             for (const workflowRunStatusToFind of workflowRunStatusesToFind) {
-                const currentRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
+                const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     //event: 'pull_request',
                     check_suite_id: checkSuite.id,
                     status: workflowRunStatusToFind,
                 })
-                currentRuns.forEach(currentRun => {
-                    if (!workflowRuns.some(it => it.id === currentRun.id)
-                        && currentRun.id !== context.runId
-                    ) {
-                        workflowRuns.push(currentRun)
+                for (const workflowRun of workflowRuns) {
+                    if (processedWorkflowRunIds.has(workflowRun.id)) {
+                        continue
+                    } else {
+                        processedWorkflowRunIds.add(workflowRun.id)
                     }
-                })
-            }
 
-            dump(`  workflowRuns`, workflowRuns)
+                    dump(`  workflowRun`, workflowRun)
+
+                    if (workflowRun.id === context.runId) {
+                        core.info(`Skipping current workflow run: ${workflowRun.url}`)
+                        continue
+                    }
+
+                    try {
+                        core.warning(`Cancelling workflow run: ${workflowRun.url}`)
+                        if (dryRun) {
+                            await octokit.actions.cancelWorkflowRun({
+                                owner: context.repo.owner,
+                                repo: context.repo.repo,
+                                run_id: workflowRun.id,
+                            })
+                        }
+                    } catch (e) {
+                        core.error(e instanceof Error ? e.message : `${e}`)
+                    }
+                }
+            }
         }
 
     } catch (error) {
