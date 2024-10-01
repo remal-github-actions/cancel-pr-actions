@@ -33457,27 +33457,6 @@ function newOctokitInstance(token) {
 const githubToken = core.getInput('githubToken', { required: true });
 const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
-function dump(name, object) {
-    core.startGroup(name);
-    core.info(JSON.stringify(object, (key, value) => [
-        '_links',
-        'repository',
-        'repo',
-        'user',
-        'owner',
-        'organization',
-        'sender',
-        'actor',
-        'body',
-        'labels',
-        'assignee',
-        'assignees',
-        'requested_reviewers',
-    ].includes(key)
-        ? null
-        : value, 2));
-    core.endGroup();
-}
 async function run() {
     try {
         dump(`context`, github.context);
@@ -33546,6 +33525,33 @@ async function run() {
     }
 }
 run();
+const isDumpAvailable = false;
+function dump(name, object) {
+    if (!isDumpAvailable) {
+        return;
+    }
+    core.startGroup(name);
+    core.info(JSON.stringify(object, (key, value) => [
+        '_links',
+        'repository',
+        'head_repository',
+        'repo',
+        'user',
+        'owner',
+        'organization',
+        'sender',
+        'actor',
+        'triggering_actor',
+        'body',
+        'labels',
+        'assignee',
+        'assignees',
+        'requested_reviewers',
+    ].includes(key)
+        ? null
+        : value, 2));
+    core.endGroup();
+}
 
 })();
 

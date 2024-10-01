@@ -13,33 +13,6 @@ const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'tr
 
 const octokit = newOctokitInstance(githubToken)
 
-function dump(name: string, object: any) {
-    core.startGroup(name)
-    core.info(JSON.stringify(
-        object,
-        (key, value) =>
-            [
-                '_links',
-                'repository',
-                'repo',
-                'user',
-                'owner',
-                'organization',
-                'sender',
-                'actor',
-                'body',
-                'labels',
-                'assignee',
-                'assignees',
-                'requested_reviewers',
-            ].includes(key)
-                ? null
-                : value,
-        2,
-    ))
-    core.endGroup()
-}
-
 async function run(): Promise<void> {
     try {
         dump(`context`, context)
@@ -115,3 +88,40 @@ async function run(): Promise<void> {
 
 //noinspection JSIgnoredPromiseFromCall
 run()
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+const isDumpAvailable = false
+
+function dump(name: string, object: any) {
+    if (!isDumpAvailable) {
+        return
+    }
+
+    core.startGroup(name)
+    core.info(JSON.stringify(
+        object,
+        (key, value) =>
+            [
+                '_links',
+                'repository',
+                'head_repository',
+                'repo',
+                'user',
+                'owner',
+                'organization',
+                'sender',
+                'actor',
+                'triggering_actor',
+                'body',
+                'labels',
+                'assignee',
+                'assignees',
+                'requested_reviewers',
+            ].includes(key)
+                ? null
+                : value,
+        2,
+    ))
+    core.endGroup()
+}
