@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { context } from '@actions/github'
 import type { components } from '@octokit/openapi-types'
-import { newOctokitInstance } from './internal/octokit'
+import { newOctokitInstance } from './internal/octokit.js'
 
 export type WorkflowRun = components['schemas']['workflow-run']
 export type WorkflowRunStatus = components['parameters']['workflow-run-status']
