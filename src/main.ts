@@ -91,9 +91,8 @@ run()
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-const isDumpAvailable = false
-
 function dump(name: string, object: any) {
+    const isDumpAvailable = false
     if (!isDumpAvailable) {
         return
     }
