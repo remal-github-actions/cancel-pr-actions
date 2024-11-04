@@ -37812,7 +37812,7 @@ function newOctokitInstance(token) {
 
 
 const githubToken = core.getInput('githubToken', { required: true });
-const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true';
+const dryRun = core.getInput('dryRun').toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
 async function run() {
     try {
@@ -37836,8 +37836,13 @@ async function run() {
                 continue;
             }
             const workflowRunStatusesToFind = [
-                'queued',
+                'action_required',
+                'stale',
                 'in_progress',
+                'queued',
+                'requested',
+                'waiting',
+                'pending',
             ];
             const processedWorkflowRunIds = new Set();
             for (const workflowRunStatusToFind of workflowRunStatusesToFind) {
@@ -37883,12 +37888,12 @@ async function run() {
 }
 run();
 function dump(name, object) {
-    const isDumpAvailable = false;
+    const isDumpAvailable = core.isDebug();
     if (!isDumpAvailable) {
         return;
     }
     core.startGroup(name);
-    core.info(JSON.stringify(object, (key, value) => [
+    core.debug(JSON.stringify(object, (key, value) => [
         '_links',
         'repository',
         'head_repository',
