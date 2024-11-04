@@ -37,8 +37,13 @@ async function run(): Promise<void> {
             }
 
             const workflowRunStatusesToFind: WorkflowRunStatus[] = [
-                'queued',
+                'action_required',
+                'stale',
                 'in_progress',
+                'queued',
+                'requested',
+                'waiting',
+                'pending',
             ]
             const processedWorkflowRunIds = new Set<number>()
             for (const workflowRunStatusToFind of workflowRunStatusesToFind) {
