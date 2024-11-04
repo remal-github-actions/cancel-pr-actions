@@ -3,13 +3,12 @@ import { context } from '@actions/github'
 import type { components } from '@octokit/openapi-types'
 import { newOctokitInstance } from './internal/octokit.js'
 
-export type WorkflowRun = components['schemas']['workflow-run']
 export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 const githubToken = core.getInput('githubToken', { required: true })
-const dryRun = core.getInput('dryRun', { required: true }).toLowerCase() === 'true'
+const dryRun = core.getInput('dryRun').toLowerCase() === 'true'
 
 const octokit = newOctokitInstance(githubToken)
 
@@ -92,13 +91,13 @@ run()
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function dump(name: string, object: any) {
-    const isDumpAvailable = false
+    const isDumpAvailable = core.isDebug()
     if (!isDumpAvailable) {
         return
     }
 
     core.startGroup(name)
-    core.info(JSON.stringify(
+    core.debug(JSON.stringify(
         object,
         (key, value) =>
             [
