@@ -37909,7 +37909,7 @@ async function run() {
                             if (attempt > 1) {
                                 await sleep(2_500);
                             }
-                            await octokit.actions.cancelWorkflowRun({
+                            await octokit.actions.forceCancelWorkflowRun({
                                 owner: github.context.repo.owner,
                                 repo: github.context.repo.repo,
                                 run_id: workflowRun.id,
