@@ -23,7 +23,7 @@ const statusesToFind: WorkflowRunStatus[] = [
     'pending',
 ]
 
-const checkSuiteCreationDelayMillis = 5_000
+const checkSuiteCreationDelayMillis = 10_000
 
 async function run(): Promise<void> {
     let cancelledWorkflowRuns = 0
@@ -65,7 +65,9 @@ async function run(): Promise<void> {
 
             const createdAtMaxTimestamp = Math.max(...createdAtTimestamps)
             log('createdAtMaxTimestamp', createdAtMaxTimestamp)
-            const delayMillis = createdAtMaxTimestamp - (Date.now() - checkSuiteCreationDelayMillis)
+            const now = Date.now()
+            log('now', now)
+            const delayMillis = createdAtMaxTimestamp - (now - checkSuiteCreationDelayMillis)
             log('delayMillis', delayMillis)
             if (delayMillis > 0 && attempt < maxAttempts) {
                 core.info(`Too new check suites were found, retrying`)
