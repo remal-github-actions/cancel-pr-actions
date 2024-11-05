@@ -3,7 +3,6 @@ import { context } from '@actions/github'
 import type { components } from '@octokit/openapi-types'
 import { newOctokitInstance } from './internal/octokit.js'
 
-export type Event = components['parameters']['event']
 export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -28,12 +27,13 @@ async function run(): Promise<void> {
 
     try {
         dump(`context`, context)
+
         const pullRequest = context.payload.pull_request
-        dump(`pullRequest: ${pullRequest?.number}`, pullRequest)
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${context.eventName}'.`)
             return
         }
+        dump(`pullRequest: #${pullRequest?.number}`, pullRequest)
 
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: context.repo.owner,
