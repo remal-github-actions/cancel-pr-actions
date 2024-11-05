@@ -11,6 +11,10 @@ inputs:
     default: 'false'
     description: Set to 'true' to enable dry run
 
+outputs:
+  cancelledWorkflowRuns:
+    description: How many GitHub Actions run were cancelled
+
 runs:
   using: node20
   main: 'dist/index.js'

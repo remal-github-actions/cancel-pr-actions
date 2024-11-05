@@ -24,6 +24,8 @@ const workflowRunStatusesToFind: WorkflowRunStatus[] = [
 ]
 
 async function run(): Promise<void> {
+    let cancelledWorkflowRuns = 0
+
     try {
         dump(`context`, context)
         const pullRequest = context.payload.pull_request
@@ -71,6 +73,7 @@ async function run(): Promise<void> {
 
                 try {
                     core.warning(`Cancelling workflow run: ${workflowRun.url}`)
+                    ++cancelledWorkflowRuns
                     if (dryRun) {
                         await octokit.actions.cancelWorkflowRun({
                             owner: context.repo.owner,
@@ -87,6 +90,9 @@ async function run(): Promise<void> {
     } catch (error) {
         core.setFailed(error instanceof Error ? error : `${error}`)
         throw error
+
+    } finally {
+        core.setOutput('cancelledWorkflowRuns', cancelledWorkflowRuns)
     }
 }
 
