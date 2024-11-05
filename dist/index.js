@@ -37828,11 +37828,11 @@ async function run() {
     try {
         dump(`context`, github.context);
         const pullRequest = github.context.payload.pull_request;
-        dump(`pullRequest: ${pullRequest?.number}`, pullRequest);
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${github.context.eventName}'.`);
             return;
         }
+        dump(`pullRequest: #${pullRequest?.number}`, pullRequest);
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
