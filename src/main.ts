@@ -26,14 +26,14 @@ async function run(): Promise<void> {
     let cancelledWorkflowRuns = 0
 
     try {
-        dump(`context`, context)
+        dumpToLog(`context`, context)
 
         const pullRequest = context.payload.pull_request
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${context.eventName}'.`)
             return
         }
-        dump(`pullRequest: #${pullRequest?.number}`, pullRequest)
+        dumpToLog(`pullRequest: #${pullRequest?.number}`, pullRequest)
 
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: context.repo.owner,
@@ -41,19 +41,19 @@ async function run(): Promise<void> {
             ref: context.payload.pull_request?.head?.sha,
         })
         for (const checkSuite of checkSuites) {
-            dump(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
+            dumpToLog(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
             if (checkSuite.app?.slug !== 'github-actions') {
-                core.info(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
+                log(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
                 continue
             }
 
             if (checkSuite.head_commit.id !== context.payload.pull_request?.head?.sha) {
-                core.info(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`)
+                log(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`)
                 continue
             }
 
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
-                core.info(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`)
+                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`)
                 continue
             }
 
@@ -64,17 +64,17 @@ async function run(): Promise<void> {
                 event: 'pull_request',
             })
             for (const workflowRun of workflowRuns) {
-                dump(`  workflowRun`, workflowRun)
+                dumpToLog(`  workflowRun`, workflowRun)
 
                 if (workflowRun.id === context.runId) {
-                    core.info(`  Skipping current workflow run: ${workflowRun.url}`)
+                    log(`  Skipping current workflow run: ${workflowRun.url}`)
                     continue
                 }
 
                 if (!workflowRun.status?.length
                     || !statusesToFind.includes(workflowRun.status as WorkflowRunStatus)
                 ) {
-                    core.info(`  Skipping workflow run: ${workflowRun.url}`)
+                    log(`  Skipping workflow run: ${workflowRun.url}`)
                     continue
                 }
 
@@ -108,14 +108,14 @@ run()
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function dump(name: string, object: any) {
+function dumpToLog(name: string, object: any) {
     const isDumpAvailable = true || core.isDebug()
     if (!isDumpAvailable) {
         return
     }
 
     core.startGroup(name)
-    core.info(JSON.stringify(
+    log(JSON.stringify(
         object,
         (key, value) =>
             [
@@ -142,4 +142,8 @@ function dump(name: string, object: any) {
         2,
     ))
     core.endGroup()
+}
+
+function log(message: any) {
+    core.info(`${message}`)
 }
