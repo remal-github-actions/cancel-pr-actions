@@ -58,16 +58,17 @@ async function run(): Promise<void> {
                 created: `>=${minWorkflowRunCreation.toUTCString()}`,
             })
             for (const workflowRun of workflowRuns) {
-                if (!workflowRun.status?.length
-                    || !workflowRunStatusesToFind.includes(workflowRun.status as WorkflowRunStatus)
-                ) {
-                    continue
-                }
-
                 dump(`  workflowRun`, workflowRun)
 
                 if (workflowRun.id === context.runId) {
                     core.info(`Skipping current workflow run: ${workflowRun.url}`)
+                    continue
+                }
+
+                if (!workflowRun.status?.length
+                    || !workflowRunStatusesToFind.includes(workflowRun.status as WorkflowRunStatus)
+                ) {
+                    core.info(`Skipping workflow run: ${workflowRun.url}`)
                     continue
                 }
 
