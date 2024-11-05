@@ -12,7 +12,7 @@ const dryRun = core.getInput('dryRun').toLowerCase() === 'true'
 
 const octokit = newOctokitInstance(githubToken)
 
-const workflowRunStatusesToFind: WorkflowRunStatus[] = [
+const statusesToFind: WorkflowRunStatus[] = [
     'action_required',
     'stale',
     'in_progress',
@@ -52,6 +52,11 @@ async function run(): Promise<void> {
                 continue
             }
 
+            if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
+                core.info(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`)
+                continue
+            }
+
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -67,7 +72,7 @@ async function run(): Promise<void> {
                 }
 
                 if (!workflowRun.status?.length
-                    || !workflowRunStatusesToFind.includes(workflowRun.status as WorkflowRunStatus)
+                    || !statusesToFind.includes(workflowRun.status as WorkflowRunStatus)
                 ) {
                     core.info(`  Skipping workflow run: ${workflowRun.url}`)
                     continue
