@@ -37824,8 +37824,9 @@ const statusesToFind = [
     'pending',
 ];
 const checkSuiteCreationDelayMillis = 10_000;
+const cancelAttempts = 10;
+const cancelRetryDelayMillis = 2_500;
 async function run() {
-    let cancelledWorkflowRuns = 0;
     try {
         log(`context`, github.context);
         const pullRequest = github.context.payload.pull_request;
@@ -37834,55 +37835,73 @@ async function run() {
             return;
         }
         log(`pullRequest: #${pullRequest?.number}`, pullRequest);
-        let checkSuites = [];
-        const maxAttempts = 2;
-        for (let attempt = 1; attempt <= maxAttempts; ++attempt) {
-            checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                ref: github.context.payload.pull_request?.head?.sha,
-            });
-            const createdAtTimestamps = checkSuites
-                .map(it => it.created_at)
-                .map(it => it != null ? new Date(it) : new Date())
-                .map(it => it.getTime());
-            log('createdAtTimestamps', createdAtTimestamps);
-            if (!createdAtTimestamps.length) {
-                if (attempt < maxAttempts) {
-                    core.info(`No check suites were found, retrying`);
-                    await sleep(checkSuiteCreationDelayMillis);
-                    continue;
-                }
-                else {
-                    break;
-                }
-            }
-            const createdAtMaxTimestamp = Math.max(...createdAtTimestamps);
-            log('createdAtMaxTimestamp', createdAtMaxTimestamp);
-            const now = Date.now();
-            log('now', now);
-            const delayMillis = createdAtMaxTimestamp - (now - checkSuiteCreationDelayMillis);
-            log('delayMillis', delayMillis);
-            if (delayMillis > 0 && attempt < maxAttempts) {
-                core.info(`Too new check suites were found, retrying`);
-                await sleep(delayMillis);
-                continue;
-            }
-            break;
-        }
-        for (const checkSuite of checkSuites) {
+        const now = Date.now();
+        async function processCheckSuite(checkSuite) {
             log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
             if (checkSuite.app?.slug !== 'github-actions') {
                 log(`Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
-                continue;
+                return;
             }
             if (checkSuite.head_commit.id !== github.context.payload.pull_request?.head?.sha) {
                 log(`Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`);
-                continue;
+                return;
             }
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
                 log(`Skipping completed GitHub Action check suite: ${checkSuite.url}: ${checkSuite.status}`);
-                continue;
+                return;
+            }
+            if (checkSuite.created_at?.length) {
+                const createdAt = new Date(checkSuite.created_at).getTime();
+                const delayMillis = createdAt - (now - checkSuiteCreationDelayMillis);
+                if (delayMillis > 0) {
+                    await sleep(delayMillis);
+                }
+            }
+            async function processWorkflowRun(workflowRun, attempt = 1) {
+                if (attempt > 1) {
+                    workflowRun = await octokit.actions.getWorkflowRun({
+                        owner: github.context.repo.owner,
+                        repo: github.context.repo.repo,
+                        run_id: workflowRun.id,
+                    }).then(it => it.data);
+                }
+                log(`workflowRun: ${workflowRun.id} (attempt ${attempt})`, workflowRun);
+                if (workflowRun.id === github.context.runId) {
+                    log(`Skipping current workflow run: ${workflowRun.url}`);
+                    return;
+                }
+                if (!statusesToFind.includes(workflowRun.status)) {
+                    log(`Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`);
+                    return;
+                }
+                try {
+                    if (attempt > cancelAttempts) {
+                        core.warning(`Forcefully cancelling workflow run: ${workflowRun.url} (attempt ${attempt})`);
+                        if (dryRun) {
+                            return;
+                        }
+                        await octokit.actions.forceCancelWorkflowRun({
+                            owner: github.context.repo.owner,
+                            repo: github.context.repo.repo,
+                            run_id: workflowRun.id,
+                        });
+                        return;
+                    }
+                    core.warning(`Cancelling workflow run: ${workflowRun.url} (attempt ${attempt})`);
+                    if (dryRun) {
+                        return;
+                    }
+                    await octokit.actions.cancelWorkflowRun({
+                        owner: github.context.repo.owner,
+                        repo: github.context.repo.repo,
+                        run_id: workflowRun.id,
+                    });
+                }
+                catch (e) {
+                    core.error(e instanceof Error ? e.message : `${e}`);
+                }
+                await sleep(cancelRetryDelayMillis);
+                return processWorkflowRun(workflowRun, attempt + 1);
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
                 owner: github.context.repo.owner,
@@ -37890,45 +37909,18 @@ async function run() {
                 check_suite_id: checkSuite.id,
                 event: 'pull_request',
             });
-            for (const workflowRun of workflowRuns) {
-                log(`workflowRun: ${workflowRun.id}`, workflowRun);
-                if (workflowRun.id === github.context.runId) {
-                    log(`Skipping current workflow run: ${workflowRun.url}`);
-                    continue;
-                }
-                if (!workflowRun.status?.length
-                    || !statusesToFind.includes(workflowRun.status)) {
-                    log(`Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`);
-                    continue;
-                }
-                try {
-                    core.warning(`Cancelling workflow run: ${workflowRun.url}`);
-                    ++cancelledWorkflowRuns;
-                    if (dryRun) {
-                        for (let attempt = 1; attempt <= 3; ++attempt) {
-                            if (attempt > 1) {
-                                await sleep(2_500);
-                            }
-                            await octokit.actions.forceCancelWorkflowRun({
-                                owner: github.context.repo.owner,
-                                repo: github.context.repo.repo,
-                                run_id: workflowRun.id,
-                            });
-                        }
-                    }
-                }
-                catch (e) {
-                    core.error(e instanceof Error ? e.message : `${e}`);
-                }
-            }
+            await Promise.all(workflowRuns.map(it => processWorkflowRun(it)));
         }
+        const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            ref: github.context.payload.pull_request?.head?.sha,
+        });
+        await Promise.all(checkSuites.map(processCheckSuite));
     }
     catch (error) {
         core.setFailed(error instanceof Error ? error : `${error}`);
         throw error;
-    }
-    finally {
-        core.setOutput('cancelledWorkflowRuns', cancelledWorkflowRuns);
     }
 }
 run();
