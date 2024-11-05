@@ -23,9 +23,6 @@ const workflowRunStatusesToFind: WorkflowRunStatus[] = [
     'pending',
 ]
 
-const minWorkflowRunCreation = new Date()
-minWorkflowRunCreation.setHours(minWorkflowRunCreation.getHours() - 4)
-
 async function run(): Promise<void> {
     try {
         dump(`context`, context)
@@ -47,6 +44,7 @@ async function run(): Promise<void> {
                 || checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== context.payload.pull_request?.number
             ) {
+                core.info(`Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
                 continue
             }
 
@@ -55,7 +53,6 @@ async function run(): Promise<void> {
                 repo: context.repo.repo,
                 check_suite_id: checkSuite.id,
                 event: 'pull_request',
-                created: `>=${minWorkflowRunCreation.toUTCString()}`,
             })
             for (const workflowRun of workflowRuns) {
                 dump(`  workflowRun`, workflowRun)
@@ -124,6 +121,8 @@ function dump(name: string, object: any) {
                 'assignee',
                 'assignees',
                 'requested_reviewers',
+                'events',
+                'permissions',
             ].includes(key)
                 ? null
                 : value,
