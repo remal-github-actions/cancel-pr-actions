@@ -64,7 +64,7 @@ async function run(): Promise<void> {
                 event: 'pull_request',
             })
             for (const workflowRun of workflowRuns) {
-                log(`  workflowRun`, workflowRun)
+                log(`  workflowRun: ${workflowRun.id}`, workflowRun)
 
                 if (workflowRun.id === context.runId) {
                     log(`  Skipping current workflow run: ${workflowRun.url}`)
