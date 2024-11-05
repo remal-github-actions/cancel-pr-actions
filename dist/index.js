@@ -37859,7 +37859,7 @@ async function run() {
                 event: 'pull_request',
             });
             for (const workflowRun of workflowRuns) {
-                log(`  workflowRun`, workflowRun);
+                log(`  workflowRun: ${workflowRun.id}`, workflowRun);
                 if (workflowRun.id === github.context.runId) {
                     log(`  Skipping current workflow run: ${workflowRun.url}`);
                     continue;
@@ -37895,7 +37895,7 @@ async function run() {
     }
 }
 run();
-function log(message, object) {
+function log(message, object = undefined) {
     const isDumpAvailable =  true || 0;
     if (!isDumpAvailable) {
         return;
