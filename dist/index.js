@@ -37905,11 +37905,16 @@ async function run() {
                     core.warning(`Cancelling workflow run: ${workflowRun.url}`);
                     ++cancelledWorkflowRuns;
                     if (dryRun) {
-                        await octokit.actions.cancelWorkflowRun({
-                            owner: github.context.repo.owner,
-                            repo: github.context.repo.repo,
-                            run_id: workflowRun.id,
-                        });
+                        for (let attempt = 1; attempt <= 3; ++attempt) {
+                            if (attempt > 1) {
+                                await sleep(1_000);
+                            }
+                            await octokit.actions.cancelWorkflowRun({
+                                owner: github.context.repo.owner,
+                                repo: github.context.repo.repo,
+                                run_id: workflowRun.id,
+                            });
+                        }
                     }
                 }
                 catch (e) {
