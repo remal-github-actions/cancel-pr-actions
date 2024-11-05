@@ -37846,6 +37846,7 @@ async function run() {
                 .map(it => it.created_at)
                 .map(it => it != null ? new Date(it) : new Date())
                 .map(it => it.getTime());
+            log('createdAtTimestamps', createdAtTimestamps);
             if (!createdAtTimestamps.length) {
                 if (attempt < maxAttempts) {
                     core.info(`No check suites were found, retrying`);
@@ -37857,7 +37858,9 @@ async function run() {
                 }
             }
             const createdAtMaxTimestamp = Math.max(...createdAtTimestamps);
+            log('createdAtMaxTimestamp', createdAtMaxTimestamp);
             const delayMillis = createdAtMaxTimestamp - (Date.now() - checkSuiteCreationDelayMillis);
+            log('delayMillis', delayMillis);
             if (delayMillis > 0 && attempt < maxAttempts) {
                 core.info(`Too new check suites were found, retrying`);
                 await sleep(delayMillis);
