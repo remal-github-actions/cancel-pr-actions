@@ -113,11 +113,11 @@ async function run(): Promise<void> {
                         repo: context.repo.repo,
                         run_id: workflowRun.id,
                     })
-                    await sleep(cancelRetryDelayMillis)
                 } catch (e) {
                     core.error(e instanceof Error ? e.message : `${e}`)
                 }
 
+                await sleep(cancelRetryDelayMillis)
                 return processWorkflowRun(workflowRun, attempt + 1)
             }
 
