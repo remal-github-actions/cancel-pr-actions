@@ -24,7 +24,7 @@ const statusesToFind: WorkflowRunStatus[] = [
     'pending',
 ]
 
-const checkSuiteCreationDelayMillis = 10_000
+const checkSuiteCreationDelayMillis = 0
 
 const cancelAttempts = 10
 const cancelRetryDelayMillis = 2_500
