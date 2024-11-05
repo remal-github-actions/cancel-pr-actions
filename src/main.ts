@@ -3,6 +3,7 @@ import { context } from '@actions/github'
 import type { components } from '@octokit/openapi-types'
 import { newOctokitInstance } from './internal/octokit.js'
 
+export type CheckSuite = components['schemas']['check-suite']
 export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -22,6 +23,8 @@ const statusesToFind: WorkflowRunStatus[] = [
     'pending',
 ]
 
+const checkSuiteCreationDelayMillis = 5_000
+
 async function run(): Promise<void> {
     let cancelledWorkflowRuns = 0
 
@@ -35,11 +38,40 @@ async function run(): Promise<void> {
         }
         log(`pullRequest: #${pullRequest?.number}`, pullRequest)
 
-        const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: context.payload.pull_request?.head?.sha,
-        })
+        let checkSuites: CheckSuite[] = []
+        const maxAttempts = 2
+        for (let attempt = 1; attempt <= maxAttempts; ++attempt) {
+            checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request?.head?.sha,
+            })
+
+            const createdAtTimestamps = checkSuites
+                .map(it => it.created_at)
+                .map(it => it != null ? new Date(it) : new Date())
+                .map(it => it.getTime())
+
+            if (!createdAtTimestamps.length) {
+                if (attempt < maxAttempts) {
+                    core.info(`No check suites were found, retrying`)
+                    await sleep(checkSuiteCreationDelayMillis)
+                    continue
+                } else {
+                    break
+                }
+            }
+
+            const createdAtMaxTimestamp = Math.max(...createdAtTimestamps)
+            const delayMillis = createdAtMaxTimestamp - (Date.now() - checkSuiteCreationDelayMillis)
+            if (delayMillis > 0 && attempt < maxAttempts) {
+                core.info(`Too new check suites were found, retrying`)
+                await sleep(delayMillis)
+                continue
+            }
+
+            break
+        }
         for (const checkSuite of checkSuites) {
             log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
             if (checkSuite.app?.slug !== 'github-actions') {
@@ -147,4 +179,10 @@ function log(message: string, object: any = undefined) {
         2,
     ))
     core.endGroup()
+}
+
+function sleep(millis: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, millis)
+    })
 }
