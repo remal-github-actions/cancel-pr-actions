@@ -37814,7 +37814,7 @@ function newOctokitInstance(token) {
 const githubToken = core.getInput('githubToken', { required: true });
 const dryRun = core.getInput('dryRun').toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
-const workflowRunStatusesToFind = [
+const statusesToFind = [
     'action_required',
     'stale',
     'in_progress',
@@ -37844,9 +37844,12 @@ async function run() {
                 core.info(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
                 continue;
             }
-            if (checkSuite.pull_requests?.length !== 1
-                || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
+            if (checkSuite.head_commit.id !== github.context.payload.pull_request?.head?.sha) {
                 core.info(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`);
+                continue;
+            }
+            if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
+                core.info(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`);
                 continue;
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
@@ -37862,7 +37865,7 @@ async function run() {
                     continue;
                 }
                 if (!workflowRun.status?.length
-                    || !workflowRunStatusesToFind.includes(workflowRun.status)) {
+                    || !statusesToFind.includes(workflowRun.status)) {
                     core.info(`  Skipping workflow run: ${workflowRun.url}`);
                     continue;
                 }
