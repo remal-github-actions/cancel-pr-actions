@@ -121,7 +121,7 @@ async function run(): Promise<void> {
                     if (dryRun) {
                         for (let attempt = 1; attempt <= 3; ++attempt) {
                             if (attempt > 1) {
-                                await sleep(1_000)
+                                await sleep(2_500)
                             }
                             await octokit.actions.cancelWorkflowRun({
                                 owner: context.repo.owner,
