@@ -37840,10 +37840,13 @@ async function run() {
         });
         for (const checkSuite of checkSuites) {
             dump(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
-            if (checkSuite.app?.slug !== 'github-actions'
-                || checkSuite.pull_requests?.length !== 1
+            if (checkSuite.app?.slug !== 'github-actions') {
+                core.info(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
+                continue;
+            }
+            if (checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
-                core.info(`Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
+                core.info(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`);
                 continue;
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
@@ -37855,16 +37858,16 @@ async function run() {
             for (const workflowRun of workflowRuns) {
                 dump(`  workflowRun`, workflowRun);
                 if (workflowRun.id === github.context.runId) {
-                    core.info(`Skipping current workflow run: ${workflowRun.url}`);
+                    core.info(`  Skipping current workflow run: ${workflowRun.url}`);
                     continue;
                 }
                 if (!workflowRun.status?.length
                     || !workflowRunStatusesToFind.includes(workflowRun.status)) {
-                    core.info(`Skipping workflow run: ${workflowRun.url}`);
+                    core.info(`  Skipping workflow run: ${workflowRun.url}`);
                     continue;
                 }
                 try {
-                    core.warning(`Cancelling workflow run: ${workflowRun.url}`);
+                    core.warning(`  Cancelling workflow run: ${workflowRun.url}`);
                     ++cancelledWorkflowRuns;
                     if (dryRun) {
                         await octokit.actions.cancelWorkflowRun({
