@@ -37826,30 +37826,30 @@ const statusesToFind = [
 async function run() {
     let cancelledWorkflowRuns = 0;
     try {
-        dump(`context`, github.context);
+        log(`context`, github.context);
         const pullRequest = github.context.payload.pull_request;
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${github.context.eventName}'.`);
             return;
         }
-        dump(`pullRequest: #${pullRequest?.number}`, pullRequest);
+        log(`pullRequest: #${pullRequest?.number}`, pullRequest);
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             ref: github.context.payload.pull_request?.head?.sha,
         });
         for (const checkSuite of checkSuites) {
-            dump(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
+            log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
             if (checkSuite.app?.slug !== 'github-actions') {
-                core.info(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
+                log(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
                 continue;
             }
             if (checkSuite.head_commit.id !== github.context.payload.pull_request?.head?.sha) {
-                core.info(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`);
+                log(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`);
                 continue;
             }
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
-                core.info(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`);
+                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`);
                 continue;
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
@@ -37859,14 +37859,14 @@ async function run() {
                 event: 'pull_request',
             });
             for (const workflowRun of workflowRuns) {
-                dump(`  workflowRun`, workflowRun);
+                log(`  workflowRun`, workflowRun);
                 if (workflowRun.id === github.context.runId) {
-                    core.info(`  Skipping current workflow run: ${workflowRun.url}`);
+                    log(`  Skipping current workflow run: ${workflowRun.url}`);
                     continue;
                 }
                 if (!workflowRun.status?.length
                     || !statusesToFind.includes(workflowRun.status)) {
-                    core.info(`  Skipping workflow run: ${workflowRun.url}`);
+                    log(`  Skipping workflow run: ${workflowRun.url}`);
                     continue;
                 }
                 try {
@@ -37895,12 +37895,16 @@ async function run() {
     }
 }
 run();
-function dump(name, object) {
+function log(message, object) {
     const isDumpAvailable =  true || 0;
     if (!isDumpAvailable) {
         return;
     }
-    core.startGroup(name);
+    if (object === undefined) {
+        core.info(message);
+        return;
+    }
+    core.startGroup(message);
     core.info(JSON.stringify(object, (key, value) => [
         '_links',
         'repository',
