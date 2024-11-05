@@ -63,6 +63,7 @@ async function run(): Promise<void> {
                 const createdAt = new Date(checkSuite.created_at).getTime()
                 const delayMillis = createdAt - (now - checkSuiteCreationDelayMillis)
                 if (delayMillis > 0) {
+                    log(`delayMillis`, delayMillis)
                     await sleep(delayMillis)
                 }
             }
