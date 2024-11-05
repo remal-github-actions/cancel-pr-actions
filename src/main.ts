@@ -108,7 +108,7 @@ run()
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function log(message: string, object?: any) {
+function log(message: string, object: any = undefined) {
     const isDumpAvailable = true || core.isDebug()
     if (!isDumpAvailable) {
         return
