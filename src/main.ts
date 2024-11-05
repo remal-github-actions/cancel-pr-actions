@@ -43,17 +43,17 @@ async function run(): Promise<void> {
         for (const checkSuite of checkSuites) {
             log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
             if (checkSuite.app?.slug !== 'github-actions') {
-                log(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
+                log(`Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
                 continue
             }
 
             if (checkSuite.head_commit.id !== context.payload.pull_request?.head?.sha) {
-                log(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`)
+                log(`Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`)
                 continue
             }
 
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
-                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}: ${checkSuite.status}`)
+                log(`Skipping completed GitHub Action check suite: ${checkSuite.url}: ${checkSuite.status}`)
                 continue
             }
 
@@ -64,22 +64,22 @@ async function run(): Promise<void> {
                 event: 'pull_request',
             })
             for (const workflowRun of workflowRuns) {
-                log(`  workflowRun: ${workflowRun.id}`, workflowRun)
+                log(`workflowRun: ${workflowRun.id}`, workflowRun)
 
                 if (workflowRun.id === context.runId) {
-                    log(`  Skipping current workflow run: ${workflowRun.url}`)
+                    log(`Skipping current workflow run: ${workflowRun.url}`)
                     continue
                 }
 
                 if (!workflowRun.status?.length
                     || !statusesToFind.includes(workflowRun.status as WorkflowRunStatus)
                 ) {
-                    log(`  Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`)
+                    log(`Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`)
                     continue
                 }
 
                 try {
-                    core.warning(`  Cancelling workflow run: ${workflowRun.url}`)
+                    core.warning(`Cancelling workflow run: ${workflowRun.url}`)
                     ++cancelledWorkflowRuns
                     if (dryRun) {
                         await octokit.actions.cancelWorkflowRun({
