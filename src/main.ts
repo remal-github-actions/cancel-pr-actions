@@ -26,14 +26,14 @@ async function run(): Promise<void> {
     let cancelledWorkflowRuns = 0
 
     try {
-        dumpToLog(`context`, context)
+        log(`context`, context)
 
         const pullRequest = context.payload.pull_request
         if (pullRequest == null) {
             core.warning(`This action should be executed on 'pull_request' events. The current event: '${context.eventName}'.`)
             return
         }
-        dumpToLog(`pullRequest: #${pullRequest?.number}`, pullRequest)
+        log(`pullRequest: #${pullRequest?.number}`, pullRequest)
 
         const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
             owner: context.repo.owner,
@@ -41,7 +41,7 @@ async function run(): Promise<void> {
             ref: context.payload.pull_request?.head?.sha,
         })
         for (const checkSuite of checkSuites) {
-            dumpToLog(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
+            log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite)
             if (checkSuite.app?.slug !== 'github-actions') {
                 log(`  Skipping not a GitHub Actions check suite: ${checkSuite.url}`)
                 continue
@@ -64,7 +64,7 @@ async function run(): Promise<void> {
                 event: 'pull_request',
             })
             for (const workflowRun of workflowRuns) {
-                dumpToLog(`  workflowRun`, workflowRun)
+                log(`  workflowRun`, workflowRun)
 
                 if (workflowRun.id === context.runId) {
                     log(`  Skipping current workflow run: ${workflowRun.url}`)
@@ -108,14 +108,19 @@ run()
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-function dumpToLog(name: string, object: any) {
+function log(message: string, object?: any) {
     const isDumpAvailable = true || core.isDebug()
     if (!isDumpAvailable) {
         return
     }
 
-    core.startGroup(name)
-    log(JSON.stringify(
+    if (object === undefined) {
+        core.info(message)
+        return
+    }
+
+    core.startGroup(message)
+    core.info(JSON.stringify(
         object,
         (key, value) =>
             [
@@ -142,8 +147,4 @@ function dumpToLog(name: string, object: any) {
         2,
     ))
     core.endGroup()
-}
-
-function log(message: any) {
-    core.info(`${message}`)
 }
