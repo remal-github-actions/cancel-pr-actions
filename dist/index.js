@@ -37926,7 +37926,7 @@ async function run() {
 }
 run();
 function log(message, object = undefined) {
-    const isDumpAvailable =  true || 0;
+    const isDumpAvailable = core.isDebug();
     if (!isDumpAvailable) {
         return;
     }
