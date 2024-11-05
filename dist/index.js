@@ -37823,6 +37823,7 @@ const statusesToFind = [
     'waiting',
     'pending',
 ];
+const checkSuiteCreationDelayMillis = 5_000;
 async function run() {
     let cancelledWorkflowRuns = 0;
     try {
@@ -37833,11 +37834,37 @@ async function run() {
             return;
         }
         log(`pullRequest: #${pullRequest?.number}`, pullRequest);
-        const checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            ref: github.context.payload.pull_request?.head?.sha,
-        });
+        let checkSuites = [];
+        const maxAttempts = 2;
+        for (let attempt = 1; attempt <= maxAttempts; ++attempt) {
+            checkSuites = await octokit.paginate(octokit.checks.listSuitesForRef, {
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                ref: github.context.payload.pull_request?.head?.sha,
+            });
+            const createdAtTimestamps = checkSuites
+                .map(it => it.created_at)
+                .map(it => it != null ? new Date(it) : new Date())
+                .map(it => it.getTime());
+            if (!createdAtTimestamps.length) {
+                if (attempt < maxAttempts) {
+                    core.info(`No check suites were found, retrying`);
+                    await sleep(checkSuiteCreationDelayMillis);
+                    continue;
+                }
+                else {
+                    break;
+                }
+            }
+            const createdAtMaxTimestamp = Math.max(...createdAtTimestamps);
+            const delayMillis = createdAtMaxTimestamp - (Date.now() - checkSuiteCreationDelayMillis);
+            if (delayMillis > 0 && attempt < maxAttempts) {
+                core.info(`Too new check suites were found, retrying`);
+                await sleep(delayMillis);
+                continue;
+            }
+            break;
+        }
         for (const checkSuite of checkSuites) {
             log(`checkSuite: ${checkSuite.id}: ${checkSuite.app?.slug}`, checkSuite);
             if (checkSuite.app?.slug !== 'github-actions') {
@@ -37927,5 +37954,10 @@ function log(message, object = undefined) {
         ? null
         : value, 2));
     core.endGroup();
+}
+function sleep(millis) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, millis);
+    });
 }
 
