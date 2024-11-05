@@ -119,11 +119,16 @@ async function run(): Promise<void> {
                     core.warning(`Cancelling workflow run: ${workflowRun.url}`)
                     ++cancelledWorkflowRuns
                     if (dryRun) {
-                        await octokit.actions.cancelWorkflowRun({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            run_id: workflowRun.id,
-                        })
+                        for (let attempt = 1; attempt <= 3; ++attempt) {
+                            if (attempt > 1) {
+                                await sleep(1_000)
+                            }
+                            await octokit.actions.cancelWorkflowRun({
+                                owner: context.repo.owner,
+                                repo: context.repo.repo,
+                                run_id: workflowRun.id,
+                            })
+                        }
                     }
                 } catch (e) {
                     core.error(e instanceof Error ? e.message : `${e}`)
