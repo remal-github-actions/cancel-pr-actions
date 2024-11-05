@@ -37849,7 +37849,7 @@ async function run() {
                 continue;
             }
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
-                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`);
+                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}: ${checkSuite.status}`);
                 continue;
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
@@ -37866,7 +37866,7 @@ async function run() {
                 }
                 if (!workflowRun.status?.length
                     || !statusesToFind.includes(workflowRun.status)) {
-                    log(`  Skipping workflow run: ${workflowRun.url}`);
+                    log(`  Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`);
                     continue;
                 }
                 try {
