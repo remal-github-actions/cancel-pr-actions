@@ -37814,6 +37814,17 @@ function newOctokitInstance(token) {
 const githubToken = core.getInput('githubToken', { required: true });
 const dryRun = core.getInput('dryRun').toLowerCase() === 'true';
 const octokit = newOctokitInstance(githubToken);
+const workflowRunStatusesToFind = [
+    'action_required',
+    'stale',
+    'in_progress',
+    'queued',
+    'requested',
+    'waiting',
+    'pending',
+];
+const minWorkflowRunCreation = new Date();
+minWorkflowRunCreation.setHours(minWorkflowRunCreation.getHours() - 4);
 async function run() {
     try {
         dump(`context`, github.context);
@@ -37835,48 +37846,36 @@ async function run() {
                 || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
                 continue;
             }
-            const workflowRunStatusesToFind = [
-                'action_required',
-                'stale',
-                'in_progress',
-                'queued',
-                'requested',
-                'waiting',
-                'pending',
-            ];
-            const processedWorkflowRunIds = new Set();
-            for (const workflowRunStatusToFind of workflowRunStatusesToFind) {
-                const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
-                    check_suite_id: checkSuite.id,
-                    status: workflowRunStatusToFind,
-                });
-                for (const workflowRun of workflowRuns) {
-                    if (processedWorkflowRunIds.has(workflowRun.id)) {
-                        continue;
+            const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                check_suite_id: checkSuite.id,
+                event: 'pull_request',
+                created: `>=${minWorkflowRunCreation.toUTCString()}`,
+            });
+            for (const workflowRun of workflowRuns) {
+                dump(`  workflowRun`, workflowRun);
+                if (workflowRun.id === github.context.runId) {
+                    core.info(`Skipping current workflow run: ${workflowRun.url}`);
+                    continue;
+                }
+                if (!workflowRun.status?.length
+                    || !workflowRunStatusesToFind.includes(workflowRun.status)) {
+                    core.info(`Skipping workflow run: ${workflowRun.url}`);
+                    continue;
+                }
+                try {
+                    core.warning(`Cancelling workflow run: ${workflowRun.url}`);
+                    if (dryRun) {
+                        await octokit.actions.cancelWorkflowRun({
+                            owner: github.context.repo.owner,
+                            repo: github.context.repo.repo,
+                            run_id: workflowRun.id,
+                        });
                     }
-                    else {
-                        processedWorkflowRunIds.add(workflowRun.id);
-                    }
-                    dump(`  workflowRun`, workflowRun);
-                    if (workflowRun.id === github.context.runId) {
-                        core.info(`Skipping current workflow run: ${workflowRun.url}`);
-                        continue;
-                    }
-                    try {
-                        core.warning(`Cancelling workflow run: ${workflowRun.url}`);
-                        if (dryRun) {
-                            await octokit.actions.cancelWorkflowRun({
-                                owner: github.context.repo.owner,
-                                repo: github.context.repo.repo,
-                                run_id: workflowRun.id,
-                            });
-                        }
-                    }
-                    catch (e) {
-                        core.error(e instanceof Error ? e.message : `${e}`);
-                    }
+                }
+                catch (e) {
+                    core.error(e instanceof Error ? e.message : `${e}`);
                 }
             }
         }
@@ -37888,12 +37887,12 @@ async function run() {
 }
 run();
 function dump(name, object) {
-    const isDumpAvailable = core.isDebug();
+    const isDumpAvailable =  true || 0;
     if (!isDumpAvailable) {
         return;
     }
     core.startGroup(name);
-    core.debug(JSON.stringify(object, (key, value) => [
+    core.info(JSON.stringify(object, (key, value) => [
         '_links',
         'repository',
         'head_repository',
