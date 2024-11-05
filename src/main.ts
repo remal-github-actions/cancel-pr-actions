@@ -47,9 +47,7 @@ async function run(): Promise<void> {
                 continue
             }
 
-            if (checkSuite.pull_requests?.length !== 1
-                || checkSuite.pull_requests[0].number !== context.payload.pull_request?.number
-            ) {
+            if (checkSuite.head_commit.id !== context.payload.pull_request?.head?.sha) {
                 core.info(`  Skipping GitHub Action not for this Pull Request: ${checkSuite.url}`)
                 continue
             }
