@@ -3,6 +3,7 @@ import { context } from '@actions/github'
 import type { components } from '@octokit/openapi-types'
 import { newOctokitInstance } from './internal/octokit.js'
 
+export type Event = components['parameters']['event']
 export type WorkflowRunStatus = components['parameters']['workflow-run-status']
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -11,6 +12,19 @@ const githubToken = core.getInput('githubToken', { required: true })
 const dryRun = core.getInput('dryRun').toLowerCase() === 'true'
 
 const octokit = newOctokitInstance(githubToken)
+
+const workflowRunStatusesToFind: WorkflowRunStatus[] = [
+    'action_required',
+    'stale',
+    'in_progress',
+    'queued',
+    'requested',
+    'waiting',
+    'pending',
+]
+
+const minWorkflowRunCreation = new Date()
+minWorkflowRunCreation.setHours(minWorkflowRunCreation.getHours() - 4)
 
 async function run(): Promise<void> {
     try {
@@ -36,50 +50,38 @@ async function run(): Promise<void> {
                 continue
             }
 
-            const workflowRunStatusesToFind: WorkflowRunStatus[] = [
-                'action_required',
-                'stale',
-                'in_progress',
-                'queued',
-                'requested',
-                'waiting',
-                'pending',
-            ]
-            const processedWorkflowRunIds = new Set<number>()
-            for (const workflowRunStatusToFind of workflowRunStatusesToFind) {
-                const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    //event: 'pull_request',
-                    check_suite_id: checkSuite.id,
-                    status: workflowRunStatusToFind,
-                })
-                for (const workflowRun of workflowRuns) {
-                    if (processedWorkflowRunIds.has(workflowRun.id)) {
-                        continue
-                    } else {
-                        processedWorkflowRunIds.add(workflowRun.id)
-                    }
+            const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_suite_id: checkSuite.id,
+                event: 'pull_request',
+                created: `>=${minWorkflowRunCreation.toUTCString()}`,
+            })
+            for (const workflowRun of workflowRuns) {
+                if (!workflowRun.status?.length
+                    || !workflowRunStatusesToFind.includes(workflowRun.status as WorkflowRunStatus)
+                ) {
+                    continue
+                }
 
-                    dump(`  workflowRun`, workflowRun)
+                dump(`  workflowRun`, workflowRun)
 
-                    if (workflowRun.id === context.runId) {
-                        core.info(`Skipping current workflow run: ${workflowRun.url}`)
-                        continue
-                    }
+                if (workflowRun.id === context.runId) {
+                    core.info(`Skipping current workflow run: ${workflowRun.url}`)
+                    continue
+                }
 
-                    try {
-                        core.warning(`Cancelling workflow run: ${workflowRun.url}`)
-                        if (dryRun) {
-                            await octokit.actions.cancelWorkflowRun({
-                                owner: context.repo.owner,
-                                repo: context.repo.repo,
-                                run_id: workflowRun.id,
-                            })
-                        }
-                    } catch (e) {
-                        core.error(e instanceof Error ? e.message : `${e}`)
+                try {
+                    core.warning(`Cancelling workflow run: ${workflowRun.url}`)
+                    if (dryRun) {
+                        await octokit.actions.cancelWorkflowRun({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            run_id: workflowRun.id,
+                        })
                     }
+                } catch (e) {
+                    core.error(e instanceof Error ? e.message : `${e}`)
                 }
             }
         }
@@ -96,13 +98,13 @@ run()
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 function dump(name: string, object: any) {
-    const isDumpAvailable = core.isDebug()
+    const isDumpAvailable = true || core.isDebug()
     if (!isDumpAvailable) {
         return
     }
 
     core.startGroup(name)
-    core.debug(JSON.stringify(
+    core.info(JSON.stringify(
         object,
         (key, value) =>
             [
