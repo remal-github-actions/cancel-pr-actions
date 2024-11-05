@@ -37823,8 +37823,6 @@ const workflowRunStatusesToFind = [
     'waiting',
     'pending',
 ];
-const minWorkflowRunCreation = new Date();
-minWorkflowRunCreation.setHours(minWorkflowRunCreation.getHours() - 4);
 async function run() {
     try {
         dump(`context`, github.context);
@@ -37844,6 +37842,7 @@ async function run() {
             if (checkSuite.app?.slug !== 'github-actions'
                 || checkSuite.pull_requests?.length !== 1
                 || checkSuite.pull_requests[0].number !== github.context.payload.pull_request?.number) {
+                core.info(`Skipping not a GitHub Actions check suite: ${checkSuite.url}`);
                 continue;
             }
             const workflowRuns = await octokit.paginate(octokit.actions.listWorkflowRunsForRepo, {
@@ -37851,7 +37850,6 @@ async function run() {
                 repo: github.context.repo.repo,
                 check_suite_id: checkSuite.id,
                 event: 'pull_request',
-                created: `>=${minWorkflowRunCreation.toUTCString()}`,
             });
             for (const workflowRun of workflowRuns) {
                 dump(`  workflowRun`, workflowRun);
@@ -37908,6 +37906,8 @@ function dump(name, object) {
         'assignee',
         'assignees',
         'requested_reviewers',
+        'events',
+        'permissions',
     ].includes(key)
         ? null
         : value, 2));
