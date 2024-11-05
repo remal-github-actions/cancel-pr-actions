@@ -37824,6 +37824,7 @@ const workflowRunStatusesToFind = [
     'pending',
 ];
 async function run() {
+    let cancelledWorkflowRuns = 0;
     try {
         dump(`context`, github.context);
         const pullRequest = github.context.payload.pull_request;
@@ -37864,6 +37865,7 @@ async function run() {
                 }
                 try {
                     core.warning(`Cancelling workflow run: ${workflowRun.url}`);
+                    ++cancelledWorkflowRuns;
                     if (dryRun) {
                         await octokit.actions.cancelWorkflowRun({
                             owner: github.context.repo.owner,
@@ -37881,6 +37883,9 @@ async function run() {
     catch (error) {
         core.setFailed(error instanceof Error ? error : `${error}`);
         throw error;
+    }
+    finally {
+        core.setOutput('cancelledWorkflowRuns', cancelledWorkflowRuns);
     }
 }
 run();
