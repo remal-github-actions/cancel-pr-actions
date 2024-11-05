@@ -53,7 +53,7 @@ async function run(): Promise<void> {
             }
 
             if (checkSuite.status != null && !statusesToFind.includes(checkSuite.status)) {
-                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}`)
+                log(`  Skipping completed GitHub Action check suite: ${checkSuite.url}: ${checkSuite.status}`)
                 continue
             }
 
@@ -74,7 +74,7 @@ async function run(): Promise<void> {
                 if (!workflowRun.status?.length
                     || !statusesToFind.includes(workflowRun.status as WorkflowRunStatus)
                 ) {
-                    log(`  Skipping workflow run: ${workflowRun.url}`)
+                    log(`  Skipping workflow run: ${workflowRun.url}: ${workflowRun.status}`)
                     continue
                 }
 
