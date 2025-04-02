@@ -26,8 +26,8 @@ const statusesToFind: WorkflowRunStatus[] = [
 
 const checkSuiteCreationDelayMillis = 0
 
-const cancelAttempts = 10
-const cancelRetryDelayMillis = 2_500
+const cancelAttempts = 5
+const cancelRetryDelayMillis = 5_000
 
 async function run(): Promise<void> {
     try {
