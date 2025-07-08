@@ -34,7 +34,7 @@ jobs:
     - name: Read action's Node.js version
       id: readNodeVersion
       run: |
-        USING=$( yq .runs.using ./action.yml )
+        USING=$( yq '.runs.using' ./action.yml )
         if ! [[ "$USING" =~ ^node[0-9]+$ ]]; then
           echo "::error::action.yml: .runs.using doesn't start with 'node': '$USING'"
           exit 1
@@ -66,7 +66,7 @@ jobs:
       id: package-manager
       if: steps.restore-node_modules-cache.outputs.cache-hit != 'true'
       run: |
-        PACKAGE_MANAGER=$( yq .packageManager ./package.json )
+        PACKAGE_MANAGER=$( yq -r '.packageManager' ./package.json )
         PACKAGE_MANAGER=${PACKAGE_MANAGER%%@*}
         if ! [[ "$PACKAGE_MANAGER" =~ ^[a-z]+$ ]]; then
           echo "::error::package.json: unsupported .packageManager format: '$PACKAGE_MANAGER'"
