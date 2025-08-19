@@ -38090,7 +38090,7 @@ async function run() {
                 }
                 try {
                     if (attempt > cancelAttempts) {
-                        core.warning(`Forcefully cancelling workflow run: ${workflowRun.url} (attempt ${attempt})`);
+                        core.warning(`Forcefully canceling workflow run: ${workflowRun.url} (attempt ${attempt})`);
                         if (dryRun) {
                             return;
                         }
@@ -38101,7 +38101,7 @@ async function run() {
                         });
                         return;
                     }
-                    core.warning(`Cancelling workflow run: ${workflowRun.url} (attempt ${attempt})`);
+                    core.warning(`Canceling workflow run: ${workflowRun.url} (attempt ${attempt})`);
                     if (dryRun) {
                         return;
                     }
