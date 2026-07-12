@@ -45,15 +45,7 @@ jobs:
 
     - name: Read action's Node.js version
       id: read-node-version
-      run: |
-        USING=$( yq '.runs.using' ./action.yml )
-        if ! [[ "$USING" =~ ^node[0-9]+$ ]]; then
-          echo "::error::action.yml: .runs.using doesn't start with 'node': '$USING'"
-          exit 1
-        fi
-        VERSION=${USING:4}
-        echo "Action's Node.js version: $VERSION"
-        echo "result=$VERSION" | tee -a "$GITHUB_OUTPUT"
+      uses: ./.github/workflows/actions/read-action-nodejs-version
 
     - name: Setup Node.js ${{steps.read-node-version.outputs.result}}
       uses: actions/setup-node@v6
