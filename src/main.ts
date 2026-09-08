@@ -74,7 +74,7 @@ async function run(): Promise<void> {
                     workflowRun = await octokit.actions.getWorkflowRun({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        run_id: workflowRun.id,
+                        run_id: Number(workflowRun.id),
                     }).then(it => it.data)
                 }
                 log(`workflowRun: ${workflowRun.id} (attempt ${attempt})`, workflowRun)
@@ -99,7 +99,7 @@ async function run(): Promise<void> {
                         await octokit.actions.forceCancelWorkflowRun({
                             owner: context.repo.owner,
                             repo: context.repo.repo,
-                            run_id: workflowRun.id,
+                            run_id: Number(workflowRun.id),
                         })
                         return
                     }
@@ -112,7 +112,7 @@ async function run(): Promise<void> {
                     await octokit.actions.cancelWorkflowRun({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        run_id: workflowRun.id,
+                        run_id: Number(workflowRun.id),
                     })
                 } catch (e) {
                     core.error(e instanceof Error ? e.message : `${e}`)
