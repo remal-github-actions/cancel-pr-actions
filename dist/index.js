@@ -38398,7 +38398,7 @@ async function run() {
                     workflowRun = await octokit.actions.getWorkflowRun({
                         owner: github_context.repo.owner,
                         repo: github_context.repo.repo,
-                        run_id: workflowRun.id,
+                        run_id: Number(workflowRun.id),
                     }).then(it => it.data);
                 }
                 log(`workflowRun: ${workflowRun.id} (attempt ${attempt})`, workflowRun);
@@ -38419,7 +38419,7 @@ async function run() {
                         await octokit.actions.forceCancelWorkflowRun({
                             owner: github_context.repo.owner,
                             repo: github_context.repo.repo,
-                            run_id: workflowRun.id,
+                            run_id: Number(workflowRun.id),
                         });
                         return;
                     }
@@ -38430,7 +38430,7 @@ async function run() {
                     await octokit.actions.cancelWorkflowRun({
                         owner: github_context.repo.owner,
                         repo: github_context.repo.repo,
-                        run_id: workflowRun.id,
+                        run_id: Number(workflowRun.id),
                     });
                 }
                 catch (e) {
